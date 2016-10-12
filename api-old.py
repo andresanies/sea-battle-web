@@ -82,6 +82,14 @@ class GuessANumberApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
+    @endpoints.method(response_message=ScoreForms,
+                      path='scores',
+                      name='get_scores',
+                      http_method='GET')
+    def get_scores(self, request):
+        """Return all scores"""
+        return ScoreForms(items=[score.to_form() for score in Score.query()])
+
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
                       path='game/{urlsafe_game_key}',
@@ -109,14 +117,6 @@ class GuessANumberApi(remote.Service):
         else:
             game.put()
             return game.to_form(msg)
-
-    @endpoints.method(response_message=ScoreForms,
-                      path='scores',
-                      name='get_scores',
-                      http_method='GET')
-    def get_scores(self, request):
-        """Return all scores"""
-        return ScoreForms(items=[score.to_form() for score in Score.query()])
 
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=ScoreForms,

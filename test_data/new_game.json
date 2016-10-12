@@ -1,0 +1,55 @@
+{
+  "user_name": "andres",
+  "ships": [
+    {
+      "type": "4",
+      "star_square": "D3",
+      "orientation": "1"
+    },
+    {
+      "type": "3",
+      "star_square": "F6",
+      "orientation": "2"
+    },
+    {
+      "type": "3",
+      "star_square": "H8",
+      "orientation": "2"
+    },
+    {
+      "type": "2",
+      "star_square": "B1",
+      "orientation": "1"
+    },
+    {
+      "type": "2",
+      "star_square": "D6",
+      "orientation": "2"
+    },
+    {
+      "type": "2",
+      "star_square": "J6",
+      "orientation": "2"
+    },
+    {
+      "type": "1",
+      "star_square": "A3",
+      "orientation": "1"
+    },
+    {
+      "type": "1",
+      "star_square": "A5",
+      "orientation": "1"
+    },
+    {
+      "type": "1",
+      "star_square": "A8",
+      "orientation": "1"
+    },
+    {
+      "type": "1",
+      "star_square": "B10",
+      "orientation": "1"
+    }
+  ]
+}

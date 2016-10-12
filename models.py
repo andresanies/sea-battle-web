@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import random
 
 from google.appengine.ext import ndb
 from protorpc import messages
+
+from ships import ShipsManager
+from ships import ShipsGenerator
 
 
 class StringMessage(messages.Message):
@@ -15,148 +17,6 @@ class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
-
-
-class Game(ndb.Model):
-    """Game object"""
-    player = ndb.KeyProperty(required=True, kind='User')
-    player_ships = ndb.KeyProperty(kind='Ship', repeated=True)
-    player_bombs = ndb.KeyProperty(kind='Bomb', repeated=True)
-    opponent_ships = ndb.KeyProperty(kind='Ship', repeated=True)
-    opponent_bombs = ndb.KeyProperty(kind='Bomb', repeated=True)
-    game_over = ndb.BooleanProperty(required=True, default=False)
-
-    @classmethod
-    def new_game(cls, user, ships):
-        """Creates and returns a new game"""
-        ships = cls.create_ships(ships)
-        game = Game(player=user, player_ships=ships,
-                    opponent_ships=cls.generate_opponent_ships())
-        game.put()
-        return game
-
-    @classmethod
-    def create_ships(cls, ships):
-        created_ships = []
-        # print(ships)
-        for ship in ships:
-            ship_instance = Ship.create_ship(
-                ship.type, ship.star_square, ship.orientation, save=False)
-            created_ships.append(ship_instance)
-        cls.check_overlapping_ships(created_ships)
-        return cls.save_ships(created_ships)
-
-    @classmethod
-    def save_ships(cls, ships):
-        saved_ships_keys = []
-        for ship in ships:
-            ship.put()
-            saved_ships_keys.append(ship.key)
-
-        return saved_ships_keys
-
-    @classmethod
-    def check_overlapping_ships(cls, ships):
-        for test_ship in ships:
-            cls.check_overlapping_ship(test_ship, ships)
-
-    @classmethod
-    def check_overlapping_ship(cls, test_ship, ships):
-        for ship in ships:
-            if ship != test_ship:
-                for square in test_ship.squares:
-                    if square in ship.squares:
-                        raise ValueError('%s overlapping %s at %s' % (
-                            test_ship.type_name, ship.type_name, square))
-
-    @classmethod
-    def generate_opponent_ships(cls):
-        ships_number_by_type = {
-            Ship.BATTLESHIP: 1,
-            Ship.CRUISER: 2,
-            Ship.DESTROYER: 3,
-            Ship.SUBMARINE: 4
-        }
-        ships = []
-        for ship_type in Ship.TYPE_CHOICES:
-            for _ in range(ships_number_by_type[ship_type]):
-                orientation = random.randint(1, len(Ship.ORIENTATION_CHOICES))
-                grid_boundaries = cls.generate_restricted_grid_boundaries(
-                    ship_type, orientation)
-
-                ship = None
-                while True:
-                    try:
-                        ship = cls.generate_ship(grid_boundaries, ship_type, orientation)
-                        cls.check_overlapping_ship(ship, ships)
-                        cls.check_nearby_ships(ship, ships)
-                        break
-                    except ValueError:
-                        continue
-
-                ships.append(ship)
-        return cls.save_ships(ships)
-
-    @classmethod
-    def generate_restricted_grid_boundaries(cls, ship_type, orientation):
-        row_limit = 10
-        column_limit = 10
-
-        if orientation == Ship.VERTICAL:
-            row_limit -= (ship_type - 1)
-
-        if orientation == Ship.HORIZONTAL:
-            column_limit = 10 - (ship_type - 1)
-
-        return [row_limit, column_limit]
-
-    @classmethod
-    def generate_ship(cls, grid_boundaries, ship_type, orientation):
-        row_limit, column_limit = grid_boundaries[0], grid_boundaries[1]
-
-        row = chr(64 + random.randint(1, row_limit))
-        column = random.randint(1, column_limit)
-
-        star_square = "%s%d" % (row, column)
-
-        return Ship.create_ship(
-            ship_type, star_square, orientation, save=False)
-
-    @classmethod
-    def check_nearby_ships(cls, test_ship, ships):
-        for ship in ships:
-            for test_square in test_ship.squares:
-                nearby_rows = [ord(test_square[0]) - 1, ord(test_square[0]) + 1]
-                nearby_columns = [int(test_square[1:]) - 1, int(test_square[1:]) + 1]
-                for square in ship.squares:
-                    is_in_the_same_row = square[0] == test_square[0]
-                    is_in_the_same_column = square[1:] == test_square[1:]
-                    if (ord(square[0]) in nearby_rows and is_in_the_same_column) or \
-                            (int(square[1:]) in nearby_columns and is_in_the_same_row):
-                        raise ValueError()
-
-    def to_form(self, message):
-        """Returns a GameForm representation of the Game"""
-        form = GameForm()
-        form.urlsafe_key = self.key.urlsafe()
-        form.user_name = self.player.get().name
-        form.player_ships = [ship.get().to_form() for ship in self.player_ships]
-        form.player_bombs = self.player_bombs
-        form.opponent_ships = [ship.get().to_form() for ship in self.opponent_ships]
-        form.opponent_bombs = self.opponent_bombs
-        form.game_over = self.game_over
-        form.message = message
-        return form
-
-        # def end_game(self, won=False):
-        #     """Ends the game - if won is True, the player won. - if won is False,
-        #     the player lost."""
-        #     self.game_over = True
-        #     self.put()
-        #     # Add the game to the score 'board'
-        #     score = Score(user=self.user, date=date.today(), won=won,
-        #                   guesses=self.attempts_allowed - self.attempts_remaining)
-        #     score.put()
 
 
 class Ship(ndb.Model):
@@ -290,19 +150,70 @@ class Ship(ndb.Model):
 
 
 class Bomb(ndb.Model):
-    MISS = 1
-    HIT = 2
-    SINK = 3
+    MIS = 'Mis'
+    HIT = 'Hit'
 
-    RESULT_CHOICES = [MISS, HIT, SINK]
+    RESULT_CHOICES = [MIS, HIT]
 
-    target_square = ndb.StringProperty(repeated=True)
-    result = ndb.IntegerProperty(repeated=True, choices=RESULT_CHOICES)
+    target_square = ndb.StringProperty(required=True)
+    result = ndb.StringProperty(choices=RESULT_CHOICES)
+
+    def to_form(self):
+        form = BombForm()
+        form.target_square = self.target_square
+        form.result = self.result
+        return form
+
+
+class Game(ndb.Model):
+    """Game object"""
+
+    player = ndb.KeyProperty(required=True, kind='User')
+    player_ships = ndb.KeyProperty(kind='Ship', repeated=True)
+    player_bombs = ndb.KeyProperty(kind='Bomb', repeated=True)
+    sunken_player_ships = ndb.KeyProperty(kind='Ship', repeated=True)
+    opponent_ships = ndb.KeyProperty(kind='Ship', repeated=True)
+    opponent_bombs = ndb.KeyProperty(kind='Bomb', repeated=True)
+    sunken_opponent_ships = ndb.KeyProperty(kind='Ship', repeated=True)
+    game_over = ndb.BooleanProperty(required=True, default=False)
+
+    @classmethod
+    def new_game(cls, user, raw_ships):
+        """Creates and returns a new game"""
+        ships = ShipsManager(Ship, raw_ships).create_ships()
+        game = Game(player=user, player_ships=ships,
+                    opponent_ships=ShipsGenerator(Ship).generate_opponent_ships())
+        game.put()
+        return game
+
+    def to_form(self, message):
+        """Returns a GameForm representation of the Game"""
+        form = GameForm()
+        form.urlsafe_key = self.key.urlsafe()
+        form.user_name = self.player.get().name
+        form.player_ships = [ship.get().to_form() for ship in self.player_ships]
+        form.player_bombs = [bomb.get().to_form() for bomb in self.player_bombs]
+        form.sunken_player_ships = [ship.get().to_form() for ship in self.sunken_player_ships]
+        form.opponent_bombs = [bomb.get().to_form() for bomb in self.opponent_bombs]
+        form.sunken_opponent_ships = [ship.get().to_form() for ship in self.sunken_opponent_ships]
+        form.game_over = self.game_over
+        form.message = message
+        return form
+
+        # def end_game(self, won=False):
+        #     """Ends the game - if won is True, the player won. - if won is False,
+        #     the player lost."""
+        #     self.game_over = True
+        #     self.put()
+        #     # Add the game to the score 'board'
+        #     score = Score(user=self.user, date=date.today(), won=won,
+        #                   guesses=self.attempts_allowed - self.attempts_remaining)
+        #     score.put()
 
 
 class BombForm(messages.Message):
     target_square = messages.StringField(1, required=True)
-    result = messages.IntegerField(2, required=True)
+    result = messages.StringField(2, required=True)
 
 
 class ShipForm(messages.Message):
@@ -325,14 +236,20 @@ class GameForm(messages.Message):
     urlsafe_key = messages.StringField(1, required=True)
     player_ships = messages.MessageField(ShipForm, 2, repeated=True)
     player_bombs = messages.MessageField(BombForm, 3, repeated=True)
-    opponent_ships = messages.MessageField(ShipForm, 4, repeated=True)
+    sunken_player_ships = messages.MessageField(ShipForm, 4, repeated=True)
     opponent_bombs = messages.MessageField(BombForm, 5, repeated=True)
-    game_over = messages.BooleanField(6, required=True)
-    message = messages.StringField(7, required=True)
-    user_name = messages.StringField(8, required=True)
+    sunken_opponent_ships = messages.MessageField(ShipForm, 6, repeated=True)
+    game_over = messages.BooleanField(7, required=True)
+    message = messages.StringField(8, required=True)
+    user_name = messages.StringField(9, required=True)
 
 
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     user_name = messages.StringField(1, required=True)
     ships = messages.MessageField(NewShipForm, 2, repeated=True)
+
+
+class MakeMoveForm(messages.Message):
+    """Used to make a move in an existing game"""
+    bomb = messages.StringField(1, required=True)
