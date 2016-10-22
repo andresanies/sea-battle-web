@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 import endpoints
+from google.appengine.api import memcache
+from google.appengine.api import taskqueue
 from protorpc import remote, messages
 
-from models import GameForm, MakeMoveForm
-from models import StringMessage, NewGameForm
-from models import User, Game, Ship, Bomb
 from bombers import PlayerBomber, OpponentBomber
+from models import GameForm, MakeMoveForm
+from models import ScoreForms
+from models import StringMessage, NewGameForm
+from models import User, Game, Ship, Bomb, Score
 from utils import get_by_urlsafe
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
@@ -16,6 +19,8 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1), )
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
+
+MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
 
 
 @endpoints.api(name='sea_battle', version='v1')
@@ -57,7 +62,7 @@ class SeaBattleApi(remote.Service):
         # Use a task queue to update the average attempts remaining.
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
-        # taskqueue.add(url='/tasks/cache_average_attempts')
+        taskqueue.add(url='/tasks/cache_average_attempts')
         return game.to_form(u'Sink ´em all!')
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
@@ -72,6 +77,14 @@ class SeaBattleApi(remote.Service):
             return game.to_form('Time to make a move!')
         else:
             raise endpoints.NotFoundException('Game not found!')
+
+    @endpoints.method(response_message=ScoreForms,
+                      path='scores',
+                      name='get_scores',
+                      http_method='GET')
+    def get_scores(self, request):
+        """Return all scores"""
+        return ScoreForms(items=[score.to_form() for score in Score.query()])
 
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
@@ -102,6 +115,41 @@ class SeaBattleApi(remote.Service):
 
         except ValueError as e:
             raise endpoints.BadRequestException(str(e))
+
+    @endpoints.method(request_message=USER_REQUEST,
+                      response_message=ScoreForms,
+                      path='scores/user/{user_name}',
+                      name='get_user_scores',
+                      http_method='GET')
+    def get_user_scores(self, request):
+        """Returns all of an individual User's scores"""
+        user = User.query(User.name == request.user_name).get()
+        if not user:
+            raise endpoints.NotFoundException(
+                'A User with that name does not exist!')
+        scores = Score.query(Score.user == user.key)
+        return ScoreForms(items=[score.to_form() for score in scores])
+
+    @endpoints.method(response_message=StringMessage,
+                      path='games/average_attempts',
+                      name='get_average_attempts_remaining',
+                      http_method='GET')
+    def get_average_attempts(self, request):
+        """Get the cached average moves remaining"""
+        return StringMessage(message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
+
+    @staticmethod
+    def _cache_average_attempts():
+        """Populates memcache with the average number of
+        dropped bombs(attempts) of unfinished Games"""
+        games = Game.query(Game.game_over == False).fetch()
+        if games:
+            count = len(games)
+            total_dropped_bombs = sum([len(game.player_bombs)
+                                       for game in games])
+            average = float(total_dropped_bombs) / count
+            memcache.set(MEMCACHE_MOVES_REMAINING,
+                         'The average number of dropped bombs are {:.2f}'.format(average))
 
 
 api = endpoints.api_server([SeaBattleApi])

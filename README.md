@@ -47,7 +47,7 @@ given time. Each game can be retrieved or played by using the path parameter
     max. Also adds a task to a task queue to update the average moves remaining
     for active games.
      
- - **get_game**
+     - **get_game**
     - Path: 'game/{urlsafe_game_key}'
     - Method: GET
     - Parameters: urlsafe_game_key
@@ -77,8 +77,8 @@ given time. Each game can be retrieved or played by using the path parameter
     - Description: Returns all Scores recorded by the provided player (unordered).
     Will raise a NotFoundException if the User does not exist.
     
- - **get_active_game_count**
-    - Path: 'games/active'
+ - **get_average_attempts**
+    - Path: 'games/average_attempts'
     - Method: GET
     - Parameters: None
     - Returns: StringMessage

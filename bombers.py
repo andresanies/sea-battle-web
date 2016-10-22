@@ -58,10 +58,11 @@ class PlayerBomber(object):
         return True
 
     def _check_if_game_is_over(self):
-        if len(self.game.sunken_opponent_ships) == 10 or (
-                    len(self.game.sunken_player_ships) == 10):
-            self.game.game_over = True
-            self.game.put()
+        if len(self.game.sunken_opponent_ships) == 10:
+            self.game.end_game(won=True)
+
+        if len(self.game.sunken_player_ships) == 10:
+            self.game.end_game()
 
 
 class OpponentBomber(PlayerBomber):

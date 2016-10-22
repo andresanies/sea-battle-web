@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
+from datetime import date
+
 from google.appengine.ext import ndb
 from protorpc import messages
 
-from ships import ShipsManager
 from ships import ShipsGenerator
-
-
-class StringMessage(messages.Message):
-    """StringMessage-- outbound (single) string message"""
-    message = messages.StringField(1, required=True)
+from ships import ShipsManager
 
 
 class User(ndb.Model):
@@ -200,15 +197,27 @@ class Game(ndb.Model):
         form.message = message
         return form
 
-        # def end_game(self, won=False):
-        #     """Ends the game - if won is True, the player won. - if won is False,
-        #     the player lost."""
-        #     self.game_over = True
-        #     self.put()
-        #     # Add the game to the score 'board'
-        #     score = Score(user=self.user, date=date.today(), won=won,
-        #                   guesses=self.attempts_allowed - self.attempts_remaining)
-        #     score.put()
+    def end_game(self, won=False):
+        """Ends the game - if won is True, the player won. - if won is False,
+        the player lost."""
+        self.game_over = True
+        self.put()
+        # Add the game to the score 'board'
+        score = Score(user=self.player, date=date.today(), won=won,
+                      bombs=len(self.player_bombs))
+        score.put()
+
+
+class Score(ndb.Model):
+    """Score object"""
+    user = ndb.KeyProperty(required=True, kind='User')
+    date = ndb.DateProperty(required=True)
+    won = ndb.BooleanProperty(required=True)
+    bombs = ndb.IntegerProperty(required=True)
+
+    def to_form(self):
+        return ScoreForm(user_name=self.user.get().name, won=self.won,
+                         date=str(self.date), bombs=self.bombs)
 
 
 class BombForm(messages.Message):
@@ -253,3 +262,21 @@ class NewGameForm(messages.Message):
 class MakeMoveForm(messages.Message):
     """Used to make a move in an existing game"""
     bomb = messages.StringField(1, required=True)
+
+
+class ScoreForm(messages.Message):
+    """ScoreForm for outbound Score information"""
+    user_name = messages.StringField(1, required=True)
+    date = messages.StringField(2, required=True)
+    won = messages.BooleanField(3, required=True)
+    bombs = messages.IntegerField(4, required=True)
+
+
+class ScoreForms(messages.Message):
+    """Return multiple ScoreForms"""
+    items = messages.MessageField(ScoreForm, 1, repeated=True)
+
+
+class StringMessage(messages.Message):
+    """StringMessage-- outbound (single) string message"""
+    message = messages.StringField(1, required=True)
