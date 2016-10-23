@@ -2,10 +2,10 @@
 import endpoints
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
-from protorpc import remote, messages
+from protorpc import remote, messages, message_types
 
 from bombers import PlayerBomber, OpponentBomber
-from models import GameForm, MakeMoveForm
+from models import GameForm, GameForms, MakeMoveForm
 from models import ScoreForms
 from models import StringMessage, NewGameForm
 from models import User, Game, Ship, Bomb, Score
@@ -130,6 +130,15 @@ class SeaBattleApi(remote.Service):
         scores = Score.query(Score.user == user.key)
         return ScoreForms(items=[score.to_form() for score in scores])
 
+    @endpoints.method(response_message=ScoreForms,
+                      path='high_scores',
+                      name='get_high_scores',
+                      http_method='GET')
+    def get_high_scores(self, request):
+        """Return the high scores"""
+        scores = Score.query(Score.won == True).order(Score.bombs)
+        return ScoreForms(items=[score.to_form() for score in scores])
+
     @endpoints.method(response_message=StringMessage,
                       path='games/average_attempts',
                       name='get_average_attempts_remaining',
@@ -150,6 +159,33 @@ class SeaBattleApi(remote.Service):
             average = float(total_dropped_bombs) / count
             memcache.set(MEMCACHE_MOVES_REMAINING,
                          'The average number of dropped bombs are {:.2f}'.format(average))
+
+    @endpoints.method(request_message=USER_REQUEST,
+                      response_message=GameForms,
+                      path='games/user/{user_name}',
+                      name='get_user_games',
+                      http_method='GET')
+    def get_user_games(self, request):
+        """Returns all of an individual User's games"""
+        user = User.query(User.name == request.user_name).get()
+        if not user:
+            raise endpoints.NotFoundException(
+                'A User with that name does not exist!')
+        games = Game.query(Game.player == user.key)
+        return GameForms(items=[game.to_form(u'Sink ´em all!') for game in games])
+
+    @endpoints.method(request_message=GET_GAME_REQUEST,
+                      path='game/{urlsafe_game_key}',
+                      name='cancel_game',
+                      http_method='DELETE')
+    def cancel_game(self, request):
+        """Return the current game state."""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game and not game.game_over:
+            game.key.delete()
+            return message_types.VoidMessage()
+        else:
+            raise endpoints.NotFoundException('Game not found!')
 
 
 api = endpoints.api_server([SeaBattleApi])

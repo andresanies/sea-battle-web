@@ -12,6 +12,7 @@ sys.path.insert(1, '{}/lib/protorpc-1.0'.format(GAE_ROOT))
 sys.path.insert(1, '{}/lib/fancy_urllib'.format(GAE_ROOT))
 
 from google.appengine.ext import testbed
+from endpoints import NotFoundException
 from protorpc import message_types
 from api import SeaBattleApi
 from api import USER_REQUEST
@@ -80,6 +81,21 @@ def get_player_ships():
             'orientation': Ship.VERTICAL,
         }
     ]
+
+
+class GaeTestCase(unittest.TestCase):
+    def setUp(self):
+        super(GaeTestCase, self).setUp()
+        tb = testbed.Testbed()
+        tb.setup_env(current_version_id='testbed.version')
+        tb.activate()
+        tb.init_all_stubs()
+        self.api = SeaBattleApi()
+        self.testbed = tb
+
+    def tearDown(self):
+        self.testbed.deactivate()
+        super(GaeTestCase, self).tearDown()
 
 
 class ShipValidationTestCase(unittest.TestCase):
@@ -174,26 +190,15 @@ class ShipValidationTestCase(unittest.TestCase):
         self.assertRaises(ValueError, generator.check_nearby_ships, ship)
 
 
-class CreateGameTestCase(unittest.TestCase):
+class CreateGameTestCase(GaeTestCase):
     """
     API unit tests.
     """
 
     def setUp(self):
         super(CreateGameTestCase, self).setUp()
-        tb = testbed.Testbed()
-        tb.setup_env(current_version_id='testbed.version')
-        tb.activate()
-        tb.init_all_stubs()
-        self.api = SeaBattleApi()
-        self.testbed = tb
-
         self.user = User(name='pepito', email='pepito@hotmail.com')
         self.user.put()
-
-    def tearDown(self):
-        self.testbed.deactivate()
-        super(CreateGameTestCase, self).tearDown()
 
     def test_create_user(self):
         user = USER_REQUEST.combined_message_class(
@@ -218,16 +223,9 @@ class CreateGameTestCase(unittest.TestCase):
         self.assertEqual(len(response.sunken_player_ships), 0)
 
 
-class PlayGameTestCase(unittest.TestCase):
+class PlayGameTestCase(GaeTestCase):
     def setUp(self):
         super(PlayGameTestCase, self).setUp()
-        tb = testbed.Testbed()
-        tb.setup_env(current_version_id='testbed.version')
-        tb.activate()
-        tb.init_all_stubs()
-        self.api = SeaBattleApi()
-        self.testbed = tb
-
         self.user = User(name='pepito', email='pepito@hotmail.com')
         self.user.put()
 
@@ -239,10 +237,6 @@ class PlayGameTestCase(unittest.TestCase):
         self.game.put()
         self.game_form = self.game.to_form(u'Sink ´em all!')
         self.opponent_ships = ships
-
-    def tearDown(self):
-        self.testbed.deactivate()
-        super(PlayGameTestCase, self).tearDown()
 
     def test_get_game(self):
         game_request = GET_GAME_REQUEST.combined_message_class(
@@ -317,16 +311,9 @@ class FinishGameTestCase(PlayGameTestCase):
         self.assertEqual(game.message, 'Game already over!')
 
 
-class GameScoresTestCase(unittest.TestCase):
+class GameScoresTestCase(GaeTestCase):
     def setUp(self):
         super(GameScoresTestCase, self).setUp()
-        tb = testbed.Testbed()
-        tb.setup_env(current_version_id='testbed.version')
-        tb.activate()
-        tb.init_all_stubs()
-        self.api = SeaBattleApi()
-        self.testbed = tb
-
         user = User(name='pepito', email='pepito@hotmail.com')
         user.put()
 
@@ -367,6 +354,67 @@ class GameScoresTestCase(unittest.TestCase):
             user_name='pepito', email='pepito@hotmail.com')
         response = self.api.get_user_scores(user)
         self.assertEqual(len(response.items), 2)
+
+    def test_get_user_games(self):
+        user = USER_REQUEST.combined_message_class(
+            user_name='juanito', email='juanito@hotmail.com')
+        response = self.api.get_user_games(user)
+        self.assertEqual(len(response.items), 1)
+
+    # TODO: test get_user_rankings, get_game_history
+
+
+class HighScoresTestCase(GaeTestCase):
+    def setUp(self):
+        super(HighScoresTestCase, self).setUp()
+        user = User(name='pepito', email='pepito@hotmail.com')
+        user.put()
+
+        ships = [Ship.create_ship(
+            ship['type'], ship['star_square'], ship['orientation']).key
+                 for ship in get_player_ships()]
+        self.opponent_ships = ships
+
+        self.first_game = self.create_game(user, ships)
+        self.second_game = self.create_game(user, ships)
+        self.third_game = self.create_game(user, ships)
+
+    def create_game(self, user, ships):
+        game = Game(player=user.key, player_ships=ships,
+                    opponent_ships=ships)
+        game.put()
+        return game.to_form(u'Sink ´em all!')
+
+    def win_game(self, game):
+        for opponent_ship in [ship_key.get() for ship_key in self.opponent_ships]:
+            for hit_bomb in opponent_ship.squares:
+                hit_bomb_request = MAKE_MOVE_REQUEST.combined_message_class(
+                    bomb=hit_bomb, urlsafe_game_key=game.urlsafe_key)
+                game = self.api.make_move(hit_bomb_request)
+
+        return game
+
+    def test_get_high_scores(self):
+        # Play a little with the second game
+        hit_bomb_request = MAKE_MOVE_REQUEST.combined_message_class(
+            bomb='A1', urlsafe_game_key=self.second_game.urlsafe_key)
+        self.second_game = self.api.make_move(hit_bomb_request)
+
+        self.second_game = self.win_game(self.second_game)
+        self.third_game = self.win_game(self.third_game)
+
+        response = self.api.get_high_scores(message_types.VoidMessage())
+        self.assertEqual(len(response.items), 2)
+        self.assertEqual(response.items[0].bombs,
+                         len(self.third_game.player_bombs))
+
+
+class CancelGameTestCase(PlayGameTestCase):
+    def test_cancel_game(self):
+        game_request = GET_GAME_REQUEST.combined_message_class(
+            urlsafe_game_key=self.game_form.urlsafe_key)
+        self.api.cancel_game(game_request)
+        self.assertRaises(NotFoundException, self.api.get_game, game_request)
 
 
 if __name__ == '__main__':
