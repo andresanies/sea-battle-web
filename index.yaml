@@ -14,3 +14,8 @@ indexes:
   properties:
   - name: game_over
   - name: user
+
+- kind: Score
+  properties:
+  - name: won
+  - name: bombs
