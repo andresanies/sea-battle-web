@@ -197,12 +197,12 @@ class CreateGameTestCase(GaeTestCase):
 
     def setUp(self):
         super(CreateGameTestCase, self).setUp()
-        self.user = User(name='pepito', email='pepito@hotmail.com')
+        self.user = User(name='pepito', email='pepito@gmail.com')
         self.user.put()
 
     def test_create_user(self):
         user = USER_REQUEST.combined_message_class(
-            user_name='juanito', email='juanito@hotmail.com')
+            user_name='juanito', email='juanito@gmail.com')
 
         response = self.api.create_user(user)
         self.assertEqual(response.message, 'User juanito created!')
@@ -226,7 +226,7 @@ class CreateGameTestCase(GaeTestCase):
 class PlayGameTestCase(GaeTestCase):
     def setUp(self):
         super(PlayGameTestCase, self).setUp()
-        self.user = User(name='pepito', email='pepito@hotmail.com')
+        self.user = User(name='pepito', email='pepito@gmail.com')
         self.user.put()
 
         ships = [Ship.create_ship(
@@ -272,6 +272,20 @@ class PlayGameTestCase(GaeTestCase):
         self.assertEqual(game.message, 'Hit')
         self.assertEqual(len(game.sunken_opponent_ships), 1)
 
+    def test_get_game_history(self):
+        first_bomb_request = MAKE_MOVE_REQUEST.combined_message_class(
+            bomb='F4', urlsafe_game_key=self.game_form.urlsafe_key)
+        self.api.make_move(first_bomb_request)
+
+        second_bomb_request = MAKE_MOVE_REQUEST.combined_message_class(
+            bomb='F5', urlsafe_game_key=self.game_form.urlsafe_key)
+        self.api.make_move(second_bomb_request)
+
+        game_request = GET_GAME_REQUEST.combined_message_class(
+            urlsafe_game_key=self.game_form.urlsafe_key)
+        game = self.api.get_game_history(game_request)
+        self.assertEqual(len(game.player_bombs), 2)
+
 
 class FinishGameTestCase(PlayGameTestCase):
     def test_win_a_game(self):
@@ -285,18 +299,16 @@ class FinishGameTestCase(PlayGameTestCase):
         self.assertEqual(game.game_over, True)
         self.assertEqual(len(game.sunken_opponent_ships), 10)
 
-    def test_lost_a_game(self):
+    def test_lose_a_game(self):
         # Bomb all player ships except for the first.
         for ship in self.game.player_ships[1:]:
             self.game.sunken_player_ships.append(ship)
-        # self.game.put()
 
         # Bomb the first player ships except for the last square.
         for hit_bomb in self.game.player_ships[0].get().squares[:-1]:
             bomb = Bomb(target_square=hit_bomb, result=Bomb.HIT)
             bomb.put()
             self.game.opponent_bombs.append(bomb.key)
-            # self.game.put()
 
         # Make a dummy move so the opponent will sink the last player ship and win the game.
         opponent_ship_square = 'A1'
@@ -314,7 +326,7 @@ class FinishGameTestCase(PlayGameTestCase):
 class GameScoresTestCase(GaeTestCase):
     def setUp(self):
         super(GameScoresTestCase, self).setUp()
-        user = User(name='pepito', email='pepito@hotmail.com')
+        user = User(name='pepito', email='pepito@gmail.com')
         user.put()
 
         ships = [Ship.create_ship(
@@ -325,7 +337,7 @@ class GameScoresTestCase(GaeTestCase):
         self.first_game = self.create_game(user, ships)
         self.second_game = self.create_game(user, ships)
 
-        second_user = User(name='juanito', email='juanito@hotmail.com')
+        second_user = User(name='juanito', email='juanito@gmail.com')
         second_user.put()
         self.third_game = self.create_game(second_user, ships)
 
@@ -351,23 +363,21 @@ class GameScoresTestCase(GaeTestCase):
 
     def test_get_user_scores(self):
         user = USER_REQUEST.combined_message_class(
-            user_name='pepito', email='pepito@hotmail.com')
+            user_name='pepito', email='pepito@gmail.com')
         response = self.api.get_user_scores(user)
         self.assertEqual(len(response.items), 2)
 
     def test_get_user_games(self):
         user = USER_REQUEST.combined_message_class(
-            user_name='juanito', email='juanito@hotmail.com')
+            user_name='juanito', email='juanito@gmail.com')
         response = self.api.get_user_games(user)
         self.assertEqual(len(response.items), 1)
-
-    # TODO: test get_user_rankings, get_game_history
 
 
 class HighScoresTestCase(GaeTestCase):
     def setUp(self):
         super(HighScoresTestCase, self).setUp()
-        user = User(name='pepito', email='pepito@hotmail.com')
+        user = User(name='pepito', email='pepito@gmail.com')
         user.put()
 
         ships = [Ship.create_ship(
@@ -407,6 +417,75 @@ class HighScoresTestCase(GaeTestCase):
         self.assertEqual(len(response.items), 2)
         self.assertEqual(response.items[0].bombs,
                          len(self.third_game.player_bombs))
+
+
+class UserRankingsTestCase(GaeTestCase):
+    def setUp(self):
+        super(UserRankingsTestCase, self).setUp()
+        user = User(name='pepito', email='pepito@gmail.com')
+        user.put()
+        user_2 = User(name='juanito', email='juanito@gmail.com')
+        user_2.put()
+
+        ships = [Ship.create_ship(
+            ship['type'], ship['star_square'], ship['orientation']).key
+                 for ship in get_player_ships()]
+        self.opponent_ships = ships
+
+        self.first_game = self.create_game(user, ships)
+        self.second_game = self.create_game(user_2, ships)
+        self.third_game = self.create_game(user_2, ships)
+        self.fourth_game = self.create_game(user_2, ships)
+        self.fifth_game = self.create_game(user_2, ships)
+
+    def create_game(self, user, ships):
+        game = Game(player=user.key, player_ships=ships,
+                    opponent_ships=ships)
+        game.put()
+        return game
+
+    def win_game(self, game):
+        for opponent_ship in [ship_key.get() for ship_key in self.opponent_ships]:
+            for hit_bomb in opponent_ship.squares:
+                hit_bomb_request = MAKE_MOVE_REQUEST.combined_message_class(
+                    bomb=hit_bomb, urlsafe_game_key=game.urlsafe_key)
+                game = self.api.make_move(hit_bomb_request)
+
+        return game
+
+    def lose_game(self, game):
+        # Bomb all player ships except for the first.
+        for ship in game.player_ships[1:]:
+            game.sunken_player_ships.append(ship)
+
+        # Bomb the first player ships except for the last square.
+        for hit_bomb in game.player_ships[0].get().squares[:-1]:
+            bomb = Bomb(target_square=hit_bomb, result=Bomb.HIT)
+            bomb.put()
+            game.opponent_bombs.append(bomb.key)
+
+        # Make a dummy move so the opponent will sink the last player ship and win the game.
+        opponent_ship_square = 'A1'
+        bomb_request = MAKE_MOVE_REQUEST.combined_message_class(
+            bomb=opponent_ship_square, urlsafe_game_key=game.key.urlsafe())
+        game = self.api.make_move(bomb_request)
+
+        return game
+
+    def test_get_user_rankings(self):
+        # Fist player wins one game
+        self.win_game(self.first_game.to_form(''))
+        # Second player wind 3 games and loses one
+        self.win_game(self.second_game.to_form(''))
+        self.win_game(self.third_game.to_form(''))
+        self.win_game(self.fourth_game.to_form(''))
+        self.lose_game(self.fifth_game)
+
+        response = self.api.get_user_rankings(message_types.VoidMessage())
+        self.assertEqual(response.items[0].name, 'juanito')
+        self.assertEqual(response.items[0].performance, 1.5)
+        self.assertEqual(response.items[1].name, 'pepito')
+        self.assertEqual(response.items[1].performance, 1)
 
 
 class CancelGameTestCase(PlayGameTestCase):

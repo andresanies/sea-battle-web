@@ -6,7 +6,8 @@ from protorpc import remote, messages, message_types
 
 from bombers import PlayerBomber, OpponentBomber
 from models import GameForm, GameForms, MakeMoveForm
-from models import ScoreForms
+from models import RankingForms, UserRankingForm
+from models import ScoreForms, GameHistoryForm
 from models import StringMessage, NewGameForm
 from models import User, Game, Ship, Bomb, Score
 from utils import get_by_urlsafe
@@ -78,6 +79,19 @@ class SeaBattleApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
+    @endpoints.method(request_message=GET_GAME_REQUEST,
+                      response_message=GameHistoryForm,
+                      path='game_history/{urlsafe_game_key}',
+                      name='get_game_history',
+                      http_method='GET')
+    def get_game_history(self, request):
+        """Return the current game state."""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game:
+            return game.to_history_form()
+        else:
+            raise endpoints.NotFoundException('Game not found!')
+
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
                       name='get_scores',
@@ -138,6 +152,26 @@ class SeaBattleApi(remote.Service):
         """Return the high scores"""
         scores = Score.query(Score.won == True).order(Score.bombs)
         return ScoreForms(items=[score.to_form() for score in scores])
+
+    @endpoints.method(response_message=RankingForms,
+                      path='user_rankings',
+                      name='get_user_rankings',
+                      http_method='GET')
+    def get_user_rankings(self, request):
+        """Return the all players ranked by performance"""
+        users = User.query()
+        rankings = []
+        for user in users:
+            wins = len(Score.query(
+                Score.user == user.key, Score.won == True).fetch())
+            loses = len(Score.query(
+                Score.user == user.key, Score.won == False).fetch())
+            performance = wins / (loses + 1.0)
+            rankings.append(UserRankingForm(name=user.name, performance=performance))
+
+        rankings = sorted(rankings, key=lambda ranking: ranking.performance, reverse=True)
+
+        return RankingForms(items=rankings)
 
     @endpoints.method(response_message=StringMessage,
                       path='games/average_attempts',

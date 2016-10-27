@@ -197,6 +197,13 @@ class Game(ndb.Model):
         form.message = message
         return form
 
+    def to_history_form(self):
+        form = GameHistoryForm()
+        form.player_ships = [ship.get().to_form() for ship in self.player_ships]
+        form.player_bombs = [bomb.get().to_form() for bomb in self.player_bombs]
+        form.opponent_bombs = [bomb.get().to_form() for bomb in self.opponent_bombs]
+        return form
+
     def end_game(self, won=False):
         """Ends the game - if won is True, the player won. - if won is False,
         the player lost."""
@@ -258,6 +265,12 @@ class GameForms(messages.Message):
     items = messages.MessageField(GameForm, 1, repeated=True)
 
 
+class GameHistoryForm(messages.Message):
+    player_ships = messages.MessageField(ShipForm, 2, repeated=True)
+    player_bombs = messages.MessageField(BombForm, 3, repeated=True)
+    opponent_bombs = messages.MessageField(BombForm, 5, repeated=True)
+
+
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     user_name = messages.StringField(1, required=True)
@@ -280,6 +293,18 @@ class ScoreForm(messages.Message):
 class ScoreForms(messages.Message):
     """Return multiple ScoreForms"""
     items = messages.MessageField(ScoreForm, 1, repeated=True)
+
+
+class UserRankingForm(messages.Message):
+    """UserRankingForm for outbound User ranking information
+    through a performance indicator which calculated as wins / loss + 1 """
+    name = messages.StringField(1, required=True)
+    performance = messages.FloatField(2, required=True)
+
+
+class RankingForms(messages.Message):
+    """Return multiple UserRankingForm"""
+    items = messages.MessageField(UserRankingForm, 1, repeated=True)
 
 
 class StringMessage(messages.Message):
