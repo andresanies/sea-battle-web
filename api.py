@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+
+"""
+
 import endpoints
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
@@ -11,6 +15,9 @@ from models import ScoreForms, GameHistoryForm
 from models import StringMessage, NewGameForm
 from models import User, Game, Ship, Bomb, Score
 from utils import get_by_urlsafe
+
+__author__ = 'Andres Anies'
+__email__ = 'andres_anies@hotmail.com'
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 GET_GAME_REQUEST = endpoints.ResourceContainer(
@@ -167,9 +174,11 @@ class SeaBattleApi(remote.Service):
             loses = len(Score.query(
                 Score.user == user.key, Score.won == False).fetch())
             performance = wins / (loses + 1.0)
-            rankings.append(UserRankingForm(name=user.name, performance=performance))
+            rankings.append(UserRankingForm(
+                name=user.name, performance=performance))
 
-        rankings = sorted(rankings, key=lambda ranking: ranking.performance, reverse=True)
+        rankings = sorted(
+            rankings, key=lambda ranking: ranking.performance, reverse=True)
 
         return RankingForms(items=rankings)
 
@@ -179,7 +188,8 @@ class SeaBattleApi(remote.Service):
                       http_method='GET')
     def get_average_attempts(self, request):
         """Get the cached average moves remaining"""
-        return StringMessage(message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
+        return StringMessage(
+            message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
 
     @staticmethod
     def _cache_average_attempts():
@@ -192,7 +202,8 @@ class SeaBattleApi(remote.Service):
                                        for game in games])
             average = float(total_dropped_bombs) / count
             memcache.set(MEMCACHE_MOVES_REMAINING,
-                         'The average number of dropped bombs are {:.2f}'.format(average))
+                         'The average number of '
+                         'dropped bombs are {:.2f}'.format(average))
 
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=GameForms,
@@ -206,7 +217,8 @@ class SeaBattleApi(remote.Service):
             raise endpoints.NotFoundException(
                 'A User with that name does not exist!')
         games = Game.query(Game.player == user.key)
-        return GameForms(items=[game.to_form(u'Sink ´em all!') for game in games])
+        return GameForms(
+            items=[game.to_form(u'Sink ´em all!') for game in games])
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       path='game/{urlsafe_game_key}',

@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
-# Developer: Andres Anies <andres_anies@hotmail.com>
+"""
+
+"""
+
 import random
 
 from models import Bomb
 from models import Ship
+
+__author__ = 'Andres Anies'
+__email__ = 'andres_anies@hotmail.com'
 
 
 class PlayerBomber(object):
     def __init__(self, game, bomb):
         self.game = game
         self.bomb = bomb
-        self.target_ships = [ship_key.get() for ship_key in self.game.opponent_ships]
+        self.target_ships = [ship_key.get()
+                             for ship_key in self.game.opponent_ships]
         self.sunken_ships = self.game.sunken_opponent_ships
 
     @property
@@ -69,7 +76,8 @@ class OpponentBomber(PlayerBomber):
     def __init__(self, game):
         super(OpponentBomber, self).__init__(game, None)
         self.game = game
-        self.target_ships = [ship_key.get() for ship_key in self.game.player_ships]
+        self.target_ships = [ship_key.get()
+                             for ship_key in self.game.player_ships]
         self.sunken_ships = self.game.sunken_player_ships
 
     @property
@@ -152,7 +160,8 @@ class OpponentBomber(PlayerBomber):
         latest_bomb = latest_hit_bombs[-1]
         second_latest_bomb = latest_hit_bombs[-2]
 
-        top_square, down_square, left_square, right_square = self._get_nearby_squares(latest_bomb)
+        top_square, down_square, left_square, right_square = \
+            self._get_nearby_squares(latest_bomb)
 
         if latest_bomb[0] == second_latest_bomb[0]:
             # We guess player ship is in horizontal orientation

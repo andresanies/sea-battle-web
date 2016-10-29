@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
+"""
+
+"""
+
 import random
 from collections import Counter
+
+__author__ = 'Andres Anies'
+__email__ = 'andres_anies@hotmail.com'
 
 
 class ShipsManager(object):
@@ -29,9 +36,11 @@ class ShipsManager(object):
 
         for ship_type, count in ships_types_count.items():
             if count > self.number_of_ships_by_type[ship_type]:
-                raise ValueError('Too many %ss' % self.ship_model.TYPE_NAMES[ship_type])
+                raise ValueError(
+                    'Too many %ss' % self.ship_model.TYPE_NAMES[ship_type])
             elif count < self.number_of_ships_by_type[ship_type]:
-                raise ValueError('Too few %ss' % self.ship_model.TYPE_NAMES[ship_type])
+                raise ValueError(
+                    'Too few %ss' % self.ship_model.TYPE_NAMES[ship_type])
 
     @property
     def number_of_ships_by_type(self):
@@ -72,14 +81,16 @@ class ShipsGenerator(ShipsManager):
     def generate_opponent_ships(self):
         for ship_type in self.ship_model.TYPE_CHOICES:
             for _ in range(self.number_of_ships_by_type[ship_type]):
-                orientation = random.randint(1, len(self.ship_model.ORIENTATION_CHOICES))
+                orientation = random.randint(
+                    1, len(self.ship_model.ORIENTATION_CHOICES))
                 grid_boundaries = self.generate_restricted_grid_boundaries(
                     ship_type, orientation)
 
                 ship = None
                 while True:
                     try:
-                        ship = self.generate_ship(grid_boundaries, ship_type, orientation)
+                        ship = self.generate_ship(
+                            grid_boundaries, ship_type, orientation)
                         self.check_overlapping_ship(ship)
                         self.check_nearby_ships(ship)
                         break
@@ -116,10 +127,13 @@ class ShipsGenerator(ShipsManager):
         for ship in self.ships:
             for test_square in test_ship.squares:
                 nearby_rows = [ord(test_square[0]) - 1, ord(test_square[0]) + 1]
-                nearby_columns = [int(test_square[1:]) - 1, int(test_square[1:]) + 1]
+                nearby_columns = [
+                    int(test_square[1:]) - 1, int(test_square[1:]) + 1]
                 for square in ship.squares:
                     is_in_the_same_row = square[0] == test_square[0]
                     is_in_the_same_column = square[1:] == test_square[1:]
-                    if (ord(square[0]) in nearby_rows and is_in_the_same_column) or \
-                            (int(square[1:]) in nearby_columns and is_in_the_same_row):
+                    if (ord(square[0]) in nearby_rows and
+                            is_in_the_same_column) or \
+                            (int(square[1:]) in nearby_columns and
+                                 is_in_the_same_row):
                         raise ValueError()

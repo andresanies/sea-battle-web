@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
 
+"""
 
 from datetime import date
 
@@ -8,6 +10,9 @@ from protorpc import messages
 
 from ships import ShipsGenerator
 from ships import ShipsManager
+
+__author__ = 'Andres Anies'
+__email__ = 'andres_anies@hotmail.com'
 
 
 class User(ndb.Model):
@@ -37,7 +42,8 @@ class Ship(ndb.Model):
 
     type = ndb.IntegerProperty(required=True, choices=TYPE_CHOICES)
     star_square = ndb.StringProperty(required=True)
-    orientation = ndb.IntegerProperty(required=True, choices=ORIENTATION_CHOICES)
+    orientation = ndb.IntegerProperty(
+        required=True, choices=ORIENTATION_CHOICES)
     sunken = ndb.BooleanProperty(default=False)
 
     @classmethod
@@ -179,7 +185,8 @@ class Game(ndb.Model):
         """Creates and returns a new game"""
         ships = ShipsManager(Ship, raw_ships).create_ships()
         game = Game(player=user, player_ships=ships,
-                    opponent_ships=ShipsGenerator(Ship).generate_opponent_ships())
+                    opponent_ships=ShipsGenerator(
+                        Ship).generate_opponent_ships())
         game.put()
         return game
 
@@ -188,20 +195,28 @@ class Game(ndb.Model):
         form = GameForm()
         form.urlsafe_key = self.key.urlsafe()
         form.user_name = self.player.get().name
-        form.player_ships = [ship.get().to_form() for ship in self.player_ships]
-        form.player_bombs = [bomb.get().to_form() for bomb in self.player_bombs]
-        form.sunken_player_ships = [ship.get().to_form() for ship in self.sunken_player_ships]
-        form.opponent_bombs = [bomb.get().to_form() for bomb in self.opponent_bombs]
-        form.sunken_opponent_ships = [ship.get().to_form() for ship in self.sunken_opponent_ships]
+        form.player_ships = [ship.get().to_form()
+                             for ship in self.player_ships]
+        form.player_bombs = [bomb.get().to_form()
+                             for bomb in self.player_bombs]
+        form.sunken_player_ships = [ship.get().to_form()
+                                    for ship in self.sunken_player_ships]
+        form.opponent_bombs = [bomb.get().to_form()
+                               for bomb in self.opponent_bombs]
+        form.sunken_opponent_ships = [ship.get().to_form()
+                                      for ship in self.sunken_opponent_ships]
         form.game_over = self.game_over
         form.message = message
         return form
 
     def to_history_form(self):
         form = GameHistoryForm()
-        form.player_ships = [ship.get().to_form() for ship in self.player_ships]
-        form.player_bombs = [bomb.get().to_form() for bomb in self.player_bombs]
-        form.opponent_bombs = [bomb.get().to_form() for bomb in self.opponent_bombs]
+        form.player_ships = [ship.get().to_form()
+                             for ship in self.player_ships]
+        form.player_bombs = [bomb.get().to_form()
+                             for bomb in self.player_bombs]
+        form.opponent_bombs = [bomb.get().to_form()
+                               for bomb in self.opponent_bombs]
         return form
 
     def end_game(self, won=False):
