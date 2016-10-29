@@ -18,10 +18,10 @@ class SendReminderEmail(webapp2.RequestHandler):
         users = User.query(User.email != None)
         for user in users:
             games = Game.query(Game.player == user.key, Game.game_over == False)
-            continue_game_endpoint = "https://sea-battle-web.appspot.com" \
+            continue_game_endpoint = "https://{}.appspot.com" \
                                      "/_ah/api/explorer" \
                                      "#p/sea_battle/v1/sea_battle.make_move" \
-                                     "?urlsafe_game_key="
+                                     "?urlsafe_game_key=".format(app_id)
             games_urls = ['{}{}'.format(continue_game_endpoint,
                                         game.key.urlsafe()) for game in games]
 
