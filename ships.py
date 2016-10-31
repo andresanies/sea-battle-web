@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
+ships.py: Holds validators and generators of ships.
 """
 
 import random
@@ -11,12 +11,14 @@ __email__ = 'andres_anies@hotmail.com'
 
 
 class ShipsManager(object):
+    """Manages the validation and creation of ships model instances"""
     def __init__(self, ship_model, raw_ships):
         self.ship_model = ship_model
         self.raw_ships = raw_ships
         self.ships = []
 
     def create_ships(self):
+        """Creates a list of ships model instances from a raw representation"""
         self.check_number_of_ships_by_type()
         for ship in self.raw_ships:
             ship_instance = self.ship_model.create_ship(
@@ -26,6 +28,7 @@ class ShipsManager(object):
         return self.save_ships()
 
     def check_number_of_ships_by_type(self):
+        """Checks if we have the appropriate number of ships per type"""
         ships_types = [ship.type for ship in self.raw_ships]
         ships_types_count = dict(Counter(ships_types))
 
@@ -44,6 +47,8 @@ class ShipsManager(object):
 
     @property
     def number_of_ships_by_type(self):
+        """Returns a mapping dictionary of ship type and the right
+        number of correspondent ships"""
         return {
             self.ship_model.BATTLESHIP: 1,
             self.ship_model.CRUISER: 2,
@@ -52,10 +57,13 @@ class ShipsManager(object):
         }
 
     def check_overlapping_ships(self):
+        """Checks if there is any ship which whose squares fills the
+        same space in the grid of other ship"""
         for test_ship in self.ships:
             self.check_overlapping_ship(test_ship)
 
     def check_overlapping_ship(self, test_ship):
+        """Checks for a given ship if overlaps any other ship"""
         for ship in self.ships:
             if ship != test_ship:
                 for square in test_ship.squares:
@@ -64,6 +72,8 @@ class ShipsManager(object):
                             test_ship.type_name, ship.type_name, square))
 
     def save_ships(self):
+        """Saves the created and validated ships into the database
+        and returns a list of its keys"""
         saved_ships_keys = []
         for ship in self.ships:
             ship.put()
@@ -73,12 +83,14 @@ class ShipsManager(object):
 
 
 class ShipsGenerator(ShipsManager):
+    """Generates a list of ships randomly for the opponent"""
     def __init__(self, ship_model):
         super(ShipsManager, self).__init__()
         self.ship_model = ship_model
         self.ships = []
 
     def generate_opponents_ships(self):
+        """Generates randomly a valid fleet of ships that fit in the game grid"""
         for ship_type in self.ship_model.TYPE_CHOICES:
             for _ in range(self.number_of_ships_by_type[ship_type]):
                 orientation = random.randint(
@@ -101,6 +113,8 @@ class ShipsGenerator(ShipsManager):
         return self.save_ships()
 
     def generate_restricted_grid_boundaries(self, ship_type, orientation):
+        """Returns the valid boundaries in which can be placed the start square
+        of a given type of ship"""
         row_limit = 10
         column_limit = 10
 
@@ -113,6 +127,8 @@ class ShipsGenerator(ShipsManager):
         return [row_limit, column_limit]
 
     def generate_ship(self, grid_boundaries, ship_type, orientation):
+        """Generates a random start square for a ship inside the game grid
+        and returns a not saved ship model instance"""
         row_limit, column_limit = grid_boundaries[0], grid_boundaries[1]
 
         row = chr(64 + random.randint(1, row_limit))
@@ -124,6 +140,8 @@ class ShipsGenerator(ShipsManager):
             ship_type, star_square, orientation, save=False)
 
     def check_nearby_ships(self, test_ship):
+        """Checks if there is any ship that has a square at the top, bottom,
+        left or right of a test ship"""
         for ship in self.ships:
             for test_square in test_ship.squares:
                 nearby_rows = [ord(test_square[0]) - 1, ord(test_square[0]) + 1]

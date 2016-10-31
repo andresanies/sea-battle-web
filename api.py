@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
+api.py - Create and configure the Sea Battle Game API exposing the resources.
 """
 
 import endpoints
@@ -191,7 +191,7 @@ class SeaBattleApi(remote.Service):
                       name='get_average_attempts',
                       http_method='GET')
     def get_average_attempts(self, request):
-        """Get the cached average moves remaining"""
+        """Get the cached average moves(bombs) dropped"""
         return StringMessage(
             message=memcache.get(MEMCACHE_AVERAGE_MOVES) or '')
 

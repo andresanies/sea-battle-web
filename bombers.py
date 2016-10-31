@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
+bombers.py: Holds validators and generators of bombs.
 """
 
 import random
@@ -13,6 +13,7 @@ __email__ = 'andres_anies@hotmail.com'
 
 
 class PlayerBomber(object):
+    """Validates and calculates the result of a player bomb"""
     def __init__(self, game, bomb):
         self.game = game
         self.bomb = bomb
@@ -29,6 +30,8 @@ class PlayerBomber(object):
         return [bomb.target_square for bomb in self.bombs]
 
     def bomb_ships(self):
+        """Executes the player's bombing and returns its result checking a
+        possible sinking ship or a game over"""
         if self.bomb in self.bombs_squares:
             raise ValueError('That bomb has already been dropped!')
 
@@ -43,6 +46,9 @@ class PlayerBomber(object):
         return result
 
     def get_bomb_result(self):
+        """Searches for a opponent ship that fills the same square as the
+        dropped bomb by the player, and if so the result will be a 'Hit'
+        otherwise a 'Mis'"""
         result = Bomb.MIS
         bombed_ship = None
         for target_ship in self.target_ships:
@@ -56,6 +62,8 @@ class PlayerBomber(object):
         return bomb.key, bombed_ship, result
 
     def _is_sunken_ship(self, ship):
+        """Checks if a given ship has all its squares bombarded and it should
+        be marked as a sunken ship"""
         for square in ship.squares:
             if square not in self.bombs_squares:
                 return
@@ -65,6 +73,8 @@ class PlayerBomber(object):
         return True
 
     def _check_if_game_is_over(self):
+        """Checks if the player or the opponent have sunken all the enemy ships
+        so the game has come to the end"""
         if len(self.game.sunken_opponents_ships) == 10:
             self.game.end_game(won=True)
 

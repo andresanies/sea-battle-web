@@ -22,9 +22,7 @@ class User(ndb.Model):
 
 
 class Ship(ndb.Model):
-    """
-
-    """
+    """Ship which forms part of the player or opponent fleet"""
     BATTLESHIP = 4
     CRUISER = 3
     DESTROYER = 2
@@ -51,6 +49,8 @@ class Ship(ndb.Model):
 
     @classmethod
     def create_ship(cls, ship_type, star_square, orientation, save=True):
+        """Takes a ship components and returns a saved(optional)
+         instance of the db ship model"""
         cls.validate_ship(ship_type, star_square, orientation)
         ship = Ship(type=ship_type, star_square=star_square,
                     orientation=orientation)
@@ -61,6 +61,9 @@ class Ship(ndb.Model):
 
     @classmethod
     def validate_ship(cls, ship_type, star_square, orientation):
+        """Validates that the start square fits in the grid and has a correct
+        format, the type value is of a known option and the rest of the
+        squares of the ship fits in the game grid"""
         try:
             cls.validate_square(star_square)
             cls.validate_type(ship_type)
@@ -71,6 +74,7 @@ class Ship(ndb.Model):
 
     @classmethod
     def validate_square(cls, square):
+        """Validates that the start square fits in the grid"""
         if len(square) > 3:
             raise ValueError('Invalid square')
 
@@ -82,6 +86,8 @@ class Ship(ndb.Model):
 
     @classmethod
     def _get_row_fow_letter(cls, letter):
+        """Gets a number representation of the row(used for
+        arithmetic operations)"""
         row_map = {
             'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5,
             'F': 6, 'G': 7, 'H': 8, 'I': 9, 'J': 10,
@@ -94,6 +100,7 @@ class Ship(ndb.Model):
 
     @classmethod
     def validate_type(cls, ship_type):
+        """Checks if the selected type option is one of the allowed types"""
         if ship_type not in cls.TYPE_CHOICES:
             raise ValueError('Invalid ship type, options are: '
                              '4 for BATTLESHIP, 3 for CRUISER '
@@ -101,6 +108,8 @@ class Ship(ndb.Model):
 
     @classmethod
     def check_if_fit_in_grid(cls, ship_type, start_square, orientation):
+        """Checks if all the squares in the ship fits in the game grid
+        so it's a valid ship"""
         end_square = cls.get_end_square(ship_type, start_square, orientation)
         try:
             cls.validate_square(end_square)
@@ -109,6 +118,7 @@ class Ship(ndb.Model):
 
     @classmethod
     def get_end_square(cls, ship_type, start_square, orientation):
+        """Calculates and returns the last square of a ship"""
         ship_length = ship_type - 1
         return cls.get_square_at_relative_position(
             start_square, orientation, stepped_squares=ship_length)
@@ -116,6 +126,8 @@ class Ship(ndb.Model):
     @classmethod
     def get_square_at_relative_position(
             cls, start_square, orientation, stepped_squares):
+        """Calculates and returns the square of given position of a ship
+        like the second or third, etc"""
         if orientation == cls.VERTICAL:
             star_square_row = cls._get_row_fow_letter(start_square[0])
             end_square_row = star_square_row + stepped_squares
@@ -133,6 +145,7 @@ class Ship(ndb.Model):
 
     @property
     def squares(self):
+        """Calculates and returns all the squares that belong to the ship"""
         ship_length = self.type
 
         squares = [self.star_square]
@@ -144,9 +157,11 @@ class Ship(ndb.Model):
 
     @property
     def type_name(self):
+        """Returns a human readable ship type representation"""
         return self.TYPE_NAMES[self.type]
 
     def to_form(self):
+        """Returns a ShipForm representation of the Ship"""
         form = ShipForm()
         form.type = self.type
         form.star_square = self.star_square
@@ -165,6 +180,7 @@ class Bomb(ndb.Model):
     result = ndb.StringProperty(choices=RESULT_CHOICES)
 
     def to_form(self):
+        """Returns a BombForm representation of the Bomb"""
         form = BombForm()
         form.target_square = self.target_square
         form.result = self.result
@@ -213,6 +229,7 @@ class Game(ndb.Model):
         return form
 
     def to_history_form(self):
+        """Returns a GameHistoryForm representation of the Game"""
         form = GameHistoryForm()
         form.players_ships = [ship.get().to_form()
                              for ship in self.players_ships]
@@ -241,17 +258,19 @@ class Score(ndb.Model):
     bombs = ndb.IntegerProperty(required=True)
 
     def to_form(self):
+        """Returns a ScoreForm representation of the Score"""
         return ScoreForm(user_name=self.user.get().name, won=self.won,
                          date=str(self.date), bombs=self.bombs)
 
 
 class BombForm(messages.Message):
+    """BombForm for describing a bomb"""
     target_square = messages.StringField(1, required=True)
     result = messages.StringField(2, required=True)
 
 
 class ShipForm(messages.Message):
-    """GameForm for describing a ship"""
+    """ShipForm for describing a ship"""
     type = messages.IntegerField(1, required=True)
     star_square = messages.StringField(2, required=True)
     orientation = messages.IntegerField(3, required=True)
@@ -259,7 +278,7 @@ class ShipForm(messages.Message):
 
 
 class NewShipForm(messages.Message):
-    """GameForm for describing a ship"""
+    """NewShipForm for representing a ship to be created"""
     type = messages.IntegerField(1, required=True)
     star_square = messages.StringField(2, required=True)
     orientation = messages.IntegerField(3, required=True)
@@ -284,6 +303,7 @@ class GameForms(messages.Message):
 
 
 class GameHistoryForm(messages.Message):
+    """Representation of the history of a Game"""
     players_ships = messages.MessageField(ShipForm, 2, repeated=True)
     player_bombs = messages.MessageField(BombForm, 3, repeated=True)
     opponent_bombs = messages.MessageField(BombForm, 5, repeated=True)

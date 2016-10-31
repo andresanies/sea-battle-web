@@ -190,7 +190,7 @@ game is already over.
     player_bombs, sunken_players_ships, opponent_bombs, opponent_bombs, 
     game_over flag, message, user_name).
  - **GameHistoryForm**
-    - Represetation of the history of a game in a replayable mode(players_ships, 
+    - Representation of the history of a game (players_ships, 
     player_bombs, opponent_bombs).
  - **NewGameForm**
     - Used to create a new game (user_name, ships list).
@@ -202,7 +202,8 @@ game is already over.
  - **ScoreForms**
     - Multiple ScoreForm container.
  - **UserRankingForm**
-    - Used to define the performance for each user.
+    - UserRankingForm for outbound User ranking information
+    through a performance indicator which calculated as wins / loss + 1 .
  - **RankingForms**
     - Multiple UserRankingForm container. 
  - **StringMessage**
