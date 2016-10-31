@@ -78,7 +78,7 @@ class ShipsGenerator(ShipsManager):
         self.ship_model = ship_model
         self.ships = []
 
-    def generate_opponent_ships(self):
+    def generate_opponents_ships(self):
         for ship_type in self.ship_model.TYPE_CHOICES:
             for _ in range(self.number_of_ships_by_type[ship_type]):
                 orientation = random.randint(

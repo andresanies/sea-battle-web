@@ -31,7 +31,7 @@ class SendReminderEmail(webapp2.RequestHandler):
                 user.name, ', '.join(games_urls))
             # This will send emails, the arguments to send_mail are:
             # from, to, subject, body
-            if games:
+            if games_urls:
                 mail.send_mail('noreply@{}.appspotmail.com'.format(app_id),
                                user.email,
                                subject,

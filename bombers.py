@@ -17,8 +17,8 @@ class PlayerBomber(object):
         self.game = game
         self.bomb = bomb
         self.target_ships = [ship_key.get()
-                             for ship_key in self.game.opponent_ships]
-        self.sunken_ships = self.game.sunken_opponent_ships
+                             for ship_key in self.game.opponents_ships]
+        self.sunken_ships = self.game.sunken_opponents_ships
 
     @property
     def bombs(self):
@@ -65,10 +65,10 @@ class PlayerBomber(object):
         return True
 
     def _check_if_game_is_over(self):
-        if len(self.game.sunken_opponent_ships) == 10:
+        if len(self.game.sunken_opponents_ships) == 10:
             self.game.end_game(won=True)
 
-        if len(self.game.sunken_player_ships) == 10:
+        if len(self.game.sunken_players_ships) == 10:
             self.game.end_game()
 
 
@@ -77,8 +77,8 @@ class OpponentBomber(PlayerBomber):
         super(OpponentBomber, self).__init__(game, None)
         self.game = game
         self.target_ships = [ship_key.get()
-                             for ship_key in self.game.player_ships]
-        self.sunken_ships = self.game.sunken_player_ships
+                             for ship_key in self.game.players_ships]
+        self.sunken_ships = self.game.sunken_players_ships
 
     @property
     def bombs(self):
@@ -105,7 +105,7 @@ class OpponentBomber(PlayerBomber):
         latest_hit_bombs = []
 
         sunken_ships_squares = []
-        for ship_key in self.game.sunken_player_ships:
+        for ship_key in self.game.sunken_players_ships:
             for square in ship_key.get().squares:
                 sunken_ships_squares.append(square)
 

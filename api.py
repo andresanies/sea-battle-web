@@ -27,8 +27,10 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1), )
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
+HIGH_SCORES_REQUEST = endpoints.ResourceContainer(
+    number_of_results=messages.IntegerField(1, required=False))
 
-MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
+MEMCACHE_AVERAGE_MOVES = 'MOVES_REMAINING'
 
 
 @endpoints.api(name='sea_battle', version='v1')
@@ -151,13 +153,15 @@ class SeaBattleApi(remote.Service):
         scores = Score.query(Score.user == user.key)
         return ScoreForms(items=[score.to_form() for score in scores])
 
-    @endpoints.method(response_message=ScoreForms,
+    @endpoints.method(request_message=HIGH_SCORES_REQUEST,
+                      response_message=ScoreForms,
                       path='high_scores',
                       name='get_high_scores',
                       http_method='GET')
     def get_high_scores(self, request):
         """Return the high scores"""
-        scores = Score.query(Score.won == True).order(Score.bombs)
+        scores = Score.query(Score.won == True).order(Score.bombs).fetch(
+            limit=request.number_of_results)
         return ScoreForms(items=[score.to_form() for score in scores])
 
     @endpoints.method(response_message=RankingForms,
@@ -184,12 +188,12 @@ class SeaBattleApi(remote.Service):
 
     @endpoints.method(response_message=StringMessage,
                       path='games/average_attempts',
-                      name='get_average_attempts_remaining',
+                      name='get_average_attempts',
                       http_method='GET')
     def get_average_attempts(self, request):
         """Get the cached average moves remaining"""
         return StringMessage(
-            message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
+            message=memcache.get(MEMCACHE_AVERAGE_MOVES) or '')
 
     @staticmethod
     def _cache_average_attempts():
@@ -201,7 +205,7 @@ class SeaBattleApi(remote.Service):
             total_dropped_bombs = sum([len(game.player_bombs)
                                        for game in games])
             average = float(total_dropped_bombs) / count
-            memcache.set(MEMCACHE_MOVES_REMAINING,
+            memcache.set(MEMCACHE_AVERAGE_MOVES,
                          'The average number of '
                          'dropped bombs are {:.2f}'.format(average))
 
@@ -216,7 +220,7 @@ class SeaBattleApi(remote.Service):
         if not user:
             raise endpoints.NotFoundException(
                 'A User with that name does not exist!')
-        games = Game.query(Game.player == user.key)
+        games = Game.query(Game.player == user.key, Game.game_over == False)
         return GameForms(
             items=[game.to_form(u'Sink ´em all!') for game in games])
 
