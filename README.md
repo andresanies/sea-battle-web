@@ -170,7 +170,7 @@ game is already over.
     some ship validation logic.
 
  - **Bomb**
- - Stores the target square of the bomb and its result. 
+    - Stores the target square of the bomb and its result. 
  
  - **Game**
     - Stores unique game states. Associated with User model via KeyProperty.
@@ -180,28 +180,30 @@ game is already over.
     
 ##Forms Included:
  - **ShipForm**
-   - GameForm for describing a ship
+    - Representation of a ship(type, star_square, orientation, sunken).
  - **NewShipForm**
-   -  
+    - Representation of a new ship(type, star_square, orientation).
  - **BombForm**
-   -   
+    - Representation of a dropped bomb(target_square, result).
  - **GameForm**
-    - Representation of a Game's state (urlsafe_key, attempts_remaining,
+    - Representation of a Game's state (urlsafe_key, players_ships,
+    player_bombs, sunken_players_ships, opponent_bombs, opponent_bombs, 
     game_over flag, message, user_name).
  - **GameHistoryForm**
-   -
+    - Represetation of the history of a game in a replayable mode(players_ships, 
+    player_bombs, opponent_bombs).
  - **NewGameForm**
-    - Used to create a new game (user_name, min, max, attempts)
+    - Used to create a new game (user_name, ships list).
  - **MakeMoveForm**
-    - Inbound make move form (guess).
+    - Inbound make move form (bomb).
  - **ScoreForm**
     - Representation of a completed game's Score (user_name, date, won flag,
     guesses).
  - **ScoreForms**
     - Multiple ScoreForm container.
  - **UserRankingForm**
-    - 
+    - Used to define the performance for each user.
  - **RankingForms**
-    - 
+    - Multiple UserRankingForm container. 
  - **StringMessage**
     - General purpose String container.
