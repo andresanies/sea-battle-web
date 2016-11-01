@@ -51,7 +51,9 @@ which will reply the bomb result like 'Hit' or 'Mis' along with the game state.
 The game state contains the result message of the dropped bomb, the player's 
 and opponent's bombs, the player's and opponent's sunken ships, the user name, 
 the player's ships, the url safe key of the game and a boolean indicating if the 
-game is already over.
+game is already over. The game is considered over if the player or the ai 
+opponent has all its fleet (10 ships) sunken.
+The games that the user won with the fewer bombs are considered the bests.
 
 
 ##Files Included:
