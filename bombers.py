@@ -48,7 +48,8 @@ class PlayerBomber(object):
     def get_bomb_result(self):
         """Searches for a opponent ship that fills the same square as the
         dropped bomb by the player, and if so the result will be a 'Hit'
-        otherwise a 'Mis'"""
+        otherwise a 'Mis'. Creates and saves in the database the Bomb's model
+        instance. Returns its key, result and the beaten ship if there is one"""
         result = Bomb.MIS
         bombed_ship = None
         for target_ship in self.target_ships:
@@ -83,6 +84,7 @@ class PlayerBomber(object):
 
 
 class OpponentBomber(PlayerBomber):
+    """Generates, validates and calculates the result of an opponent bomb"""
     def __init__(self, game):
         super(OpponentBomber, self).__init__(game, None)
         self.game = game
@@ -95,6 +97,9 @@ class OpponentBomber(PlayerBomber):
         return [bomb.get() for bomb in self.game.opponent_bombs]
 
     def bomb_ships(self):
+        """Generates a random bomb to be dropped in the player's fleet if
+        there is not a ship partially sunken else find the rest of the ship
+        and bombard it until has been sunken"""
         latest_hit_bombs = self._get_latest_hit_bombs()
         if latest_hit_bombs:
 
@@ -112,6 +117,7 @@ class OpponentBomber(PlayerBomber):
             self._bomb_random_square()
 
     def _get_latest_hit_bombs(self):
+        """Returns the latest bombs that had hit a partially sunken ship"""
         latest_hit_bombs = []
 
         sunken_ships_squares = []
@@ -127,11 +133,15 @@ class OpponentBomber(PlayerBomber):
         return latest_hit_bombs
 
     def _bomb_nearby_squares(self, latest_hit_bombs):
+        """Finds the rest of the squares of a partially sunken ship
+        and bombard it guessing the position of the next square of that ship"""
         latest_bomb = latest_hit_bombs[0]
         nearby_squares = self._get_nearby_squares(latest_bomb)
         self._try_bombs(nearby_squares)
 
     def _get_nearby_squares(self, square):
+        """Finds all nearby(top, down, left and right) squares
+        of a given square"""
         nearby_rows = [chr(ord(square[0]) - 1), chr(ord(square[0]) + 1)]
         nearby_columns = [int(square[1:]) - 1, int(square[1:]) + 1]
 
@@ -142,6 +152,8 @@ class OpponentBomber(PlayerBomber):
         return [top_square, down_square, left_square, right_square]
 
     def _try_bombs(self, nearby_squares):
+        """Tries to guess the next square of the partially sunken ship bombarding
+        if possible a nearby square of the latest bomb that was a hit"""
         for possible_bomb in nearby_squares:
             try:
                 Ship.validate_square(possible_bomb)
@@ -152,6 +164,9 @@ class OpponentBomber(PlayerBomber):
                 continue
 
     def _bomb_with_same_last_orientation(self, latest_hit_bombs):
+        """Tries to guess the next square of the partially sunken ship
+         knowing that the possible Hit will be in the same orientation
+         of the last hit"""
         latest_bomb = latest_hit_bombs[0]
         second_latest_bomb = latest_hit_bombs[1]
 
@@ -167,6 +182,9 @@ class OpponentBomber(PlayerBomber):
             self._try_bombs(nearby_squares_vertically)
 
     def _bomb_with_same_last_orientation_and_direction(self, latest_hit_bombs):
+        """Guesses the next square of the partially sunken ship
+         knowing that the possible Hit will be in the same orientation and
+         the same direction of the last hit"""
         latest_bomb = latest_hit_bombs[-1]
         second_latest_bomb = latest_hit_bombs[-2]
 
@@ -187,6 +205,7 @@ class OpponentBomber(PlayerBomber):
                 self._try_bombs([down_square])
 
     def _bomb_random_square(self):
+        """Drops a bomb in any available square"""
         while True:
             row = chr(64 + random.randint(1, 10))
             column = random.randint(1, 10)
@@ -196,6 +215,9 @@ class OpponentBomber(PlayerBomber):
                 break
 
     def _save_bomb(self, bomb):
+        """Gets the bomb saved in the database and adds its key to the
+        opponent_bombs list of the current game. Check if there is a sunken
+        ship or the game has come to the end"""
         self.bomb = bomb
         bomb_key, bombed_ship, result = self.get_bomb_result()
         self.game.opponent_bombs.append(bomb_key)
