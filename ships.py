@@ -12,6 +12,7 @@ __email__ = 'andres_anies@hotmail.com'
 
 class ShipsManager(object):
     """Manages the validation and creation of ships model instances"""
+
     def __init__(self, ship_model, raw_ships):
         self.ship_model = ship_model
         self.raw_ships = raw_ships
@@ -84,6 +85,7 @@ class ShipsManager(object):
 
 class ShipsGenerator(ShipsManager):
     """Generates a list of ships randomly for the opponent"""
+
     def __init__(self, ship_model):
         super(ShipsManager, self).__init__()
         self.ship_model = ship_model

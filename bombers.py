@@ -14,6 +14,7 @@ __email__ = 'andres_anies@hotmail.com'
 
 class PlayerBomber(object):
     """Validates and calculates the result of a player bomb"""
+
     def __init__(self, game, bomb):
         self.game = game
         self.bomb = bomb
@@ -85,6 +86,7 @@ class PlayerBomber(object):
 
 class OpponentBomber(PlayerBomber):
     """Generates, validates and calculates the result of an opponent bomb"""
+
     def __init__(self, game):
         super(OpponentBomber, self).__init__(game, None)
         self.game = game

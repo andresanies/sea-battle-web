@@ -1,0 +1,24 @@
+Sea Battle design
+
+- Sea Battle was implemented as one player game. There is a computer "opponent" which implements
+ a basic but sufficient AI so the user can feel like is really playing against someone.
+
+- I added two new models to game which are "Ship" and "Bomb" so the database has a
+better representation of the game.
+
+- The game model now has the attributes player instead of user, players_ships, player_bombs,
+sunken_players_ships, opponents_ships, opponent_bombs, sunken_opponents_ships. So the fronted developer
+has a complete representation of the game's state and can draw the user's grid with the player ships,
+opponent bombs with its result(whether is a hit or a miss) and the sunken player's ships with
+its appropriate icons, as well as for the opponent's grid the player's bombs and the opponent's
+sunken ships.
+
+- The Ship model includes some validation logic for its internal data.
+
+- The main logic for creating and validating ships was moved to a separated module called ships.py
+
+- The main logic for creating and validating Bombs which is a central part of the guessing game
+was placed in the module bombers.py.
+
+- Additionally there is a unittest module called tests.py that demonstrate how to use each service endpoint.
+

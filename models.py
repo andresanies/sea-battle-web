@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-
-"""
+"""models.py - This file contains the class definitions for the Datastore
+entities used by the Game."""
 
 from datetime import date
 
@@ -215,15 +214,15 @@ class Game(ndb.Model):
         form.urlsafe_key = self.key.urlsafe()
         form.user_name = self.player.get().name
         form.players_ships = [ship.get().to_form()
-                             for ship in self.players_ships]
+                              for ship in self.players_ships]
         form.player_bombs = [bomb.get().to_form()
                              for bomb in self.player_bombs]
         form.sunken_players_ships = [ship.get().to_form()
-                                    for ship in self.sunken_players_ships]
+                                     for ship in self.sunken_players_ships]
         form.opponent_bombs = [bomb.get().to_form()
                                for bomb in self.opponent_bombs]
         form.sunken_opponents_ships = [ship.get().to_form()
-                                      for ship in self.sunken_opponents_ships]
+                                       for ship in self.sunken_opponents_ships]
         form.game_over = self.game_over
         form.message = message
         return form
@@ -232,7 +231,7 @@ class Game(ndb.Model):
         """Returns a GameHistoryForm representation of the Game"""
         form = GameHistoryForm()
         form.players_ships = [ship.get().to_form()
-                             for ship in self.players_ships]
+                              for ship in self.players_ships]
         form.player_bombs = [bomb.get().to_form()
                              for bomb in self.player_bombs]
         form.opponent_bombs = [bomb.get().to_form()
