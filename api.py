@@ -117,12 +117,16 @@ class SeaBattleApi(remote.Service):
     def make_move(self, request):
         """Makes a move. Returns a game state with message"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if not game:
+            raise endpoints.NotFoundException('Game not found!')
+        # Check if the game is already over
         if game.game_over:
             return game.to_form('Game already over!')
 
         try:
             Ship.validate_square(request.bomb)
             result = PlayerBomber(game, request.bomb).bomb_ships()
+            # Check if the new player bomb caused the end of the game
             if game.game_over:
                 return game.to_form('You won!')
 
@@ -131,6 +135,8 @@ class SeaBattleApi(remote.Service):
                 while game.opponent_bombs[-1].get().result == Bomb.HIT:
                     OpponentBomber(game).bomb_ships()
 
+            # Check if the new opponent bomb(s) if any  caused
+            # the end of the game
             if game.game_over:
                 return game.to_form('You loose!')
 
@@ -229,9 +235,15 @@ class SeaBattleApi(remote.Service):
                       name='cancel_game',
                       http_method='DELETE')
     def cancel_game(self, request):
-        """Return the current game state."""
+        """Cancels a game in progress by removing it from the database, also
+        checks that the user owns the game."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game and not game.game_over:
+            user = endpoints.get_current_user()
+            if not user or game.player.get().email != user.email():
+                raise endpoints.UnauthorizedException(
+                    'You are not authorized to cancel that game')
+
             game.key.delete()
             return message_types.VoidMessage()
         else:
